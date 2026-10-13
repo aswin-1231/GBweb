@@ -1,0 +1,601 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Security Analyzer</title>
+    <style>
+      :root {
+        --bg: #050b17;
+        --bg2: #111827;
+        --panel: rgba(15, 23, 42, 0.72);
+        --card: rgba(17, 24, 39, 0.9);
+        --line: rgba(148, 163, 184, 0.2);
+        --text: #edf5ff;
+        --muted: #a5b4cf;
+        --green: #34d399;
+        --yellow: #fbbf24;
+        --red: #f87171;
+        --blue: #60a5fa;
+        --purple: #a78bfa;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), transparent 30%),
+          radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.25), transparent 35%),
+          linear-gradient(135deg, var(--bg), var(--bg2));
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.28;
+        z-index: 0;
+        animation: moveGlow 18s ease-in-out infinite alternate;
+      }
+
+      body::before {
+        background: rgba(96, 165, 250, 0.55);
+        top: -140px;
+        left: -90px;
+      }
+
+      body::after {
+        background: rgba(168, 85, 247, 0.45);
+        right: -120px;
+        bottom: -120px;
+        animation-delay: 1.5s;
+      }
+
+      @keyframes moveGlow {
+        0% { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(25px, 18px) scale(1.1); }
+      }
+
+      .page {
+        position: relative;
+        z-index: 1;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 32px 20px 80px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 18px 22px;
+        background: rgba(15, 23, 42, 0.42);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        backdrop-filter: blur(16px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .brand-icon {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(168, 85, 247, 0.2));
+        box-shadow: 0 15px 35px rgba(96, 165, 250, 0.35);
+        border: 1px solid rgba(255,255,255,0.12);
+      }
+
+      .brand-icon svg {
+        width: 30px;
+        height: 30px;
+        display: block;
+      }
+
+      .nav-link {
+        color: var(--text);
+        text-decoration: none;
+        padding: 10px 16px;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 10px;
+        background: rgba(255,255,255,0.02);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 30px;
+        align-items: center;
+        padding-top: 40px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 25px 55px rgba(0,0,0,0.35);
+      }
+
+      .analyzer {
+        padding: 28px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.8;
+        margin-bottom: 28px;
+      }
+
+      .input-wrap {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      input[type="text"] {
+        flex: 1 1 520px;
+        height: 58px;
+        padding: 0 20px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(10, 14, 26, 0.65);
+        color: var(--text);
+        font-size: 1rem;
+        outline: none;
+      }
+
+      input[type="text"]:focus {
+        border-color: rgba(96, 165, 250, 0.8);
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+      }
+
+      button {
+        height: 58px;
+        border-radius: 14px;
+        border: none;
+        padding: 0 22px;
+        background: linear-gradient(135deg, var(--blue), var(--purple));
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        box-shadow: 0 15px 35px rgba(96, 165, 250, 0.28);
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+      }
+
+      .samples {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+
+      .sample {
+        border: 1px solid rgba(255,255,255,0.09);
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
+        padding: 9px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: 0.2s ease;
+      }
+
+      .sample:hover {
+        border-color: rgba(96, 165, 250, 0.7);
+        background: rgba(96, 165, 250, 0.06);
+      }
+
+      .result {
+        padding: 24px;
+      }
+
+      .status-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .signal-panel {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .signal-dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #64748b;
+        box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.5);
+        border: 3px solid rgba(255,255,255,0.2);
+        transition: all 0.3s ease;
+      }
+
+      .signal-dot.safe-light {
+        background: var(--green);
+        box-shadow: 0 0 18px rgba(52, 211, 153, 0.9);
+      }
+
+      .signal-dot.warning-light {
+        background: var(--yellow);
+        box-shadow: 0 0 18px rgba(251, 191, 36, 0.9);
+      }
+
+      .signal-dot.danger-light {
+        background: var(--red);
+        box-shadow: 0 0 18px rgba(248, 113, 113, 0.9);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-weight: 700;
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+
+      .safe {
+        background: rgba(52, 211, 153, 0.12);
+        border-color: rgba(52, 211, 153, 0.35);
+        color: var(--green);
+      }
+
+      .warning {
+        background: rgba(251, 191, 36, 0.1);
+        border-color: rgba(251, 191, 36, 0.35);
+        color: var(--yellow);
+      }
+
+      .danger {
+        background: rgba(248, 113, 113, 0.1);
+        border-color: rgba(248, 113, 113, 0.35);
+        color: var(--red);
+      }
+
+      .score-box {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .score-box h2 {
+        margin: 0;
+        font-size: 3rem;
+      }
+
+      .score-box span {
+        color: var(--muted);
+      }
+
+      .insight-list {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0 0;
+        display: grid;
+        gap: 12px;
+      }
+
+      .insight-list li {
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.02);
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .ai-agent {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(96, 165, 250, 0.08);
+        color: var(--text);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .status-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(96, 165, 250, 0.12);
+        border: 1px solid rgba(96, 165, 250, 0.25);
+        color: #dceaff;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .alert-box {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        display: none;
+        line-height: 1.7;
+        font-weight: 600;
+      }
+
+      .alert-safe {
+        display: block;
+        background: rgba(52, 211, 153, 0.12);
+        color: var(--green);
+        border: 1px solid rgba(52, 211, 153, 0.3);
+      }
+
+      .alert-warning {
+        display: block;
+        background: rgba(251, 191, 36, 0.1);
+        color: var(--yellow);
+        border: 1px solid rgba(251, 191, 36, 0.32);
+      }
+
+      .alert-danger {
+        display: block;
+        background: rgba(248, 113, 113, 0.1);
+        color: var(--red);
+        border: 1px solid rgba(248, 113, 113, 0.35);
+      }
+
+      @media (max-width: 860px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-icon" aria-label="WebSafe Checker logo">
+            <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
+              <circle cx="32" cy="32" r="19" fill="none" stroke="#3ec5ff" stroke-width="4.5"/>
+              <path d="M32 13c-5 4-9 10-9 19s4 15 9 19c5-4 9-10 9-19s-4-15-9-19z" fill="none" stroke="#3ec5ff" stroke-width="4.5"/>
+              <path d="M13 32h38M32 13v38" stroke="#3ec5ff" stroke-width="4" stroke-linecap="round"/>
+              <path d="M18 20l28 24M46 20L18 44" stroke="#3ec5ff" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+              <path d="M22 35l7 7 17-19" fill="none" stroke="#7fffd4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 7h25l9 9v31c0 4-3 7-7 7H20c-4 0-7-3-7-7V14c0-4 3-7 7-7z" fill="rgba(255,255,255,0.12)" stroke="#ffffff" stroke-width="2.5"/>
+            </svg>
+          </div>
+          <span>WebSafe Checker</span>
+        </div>
+        <a class="nav-link" href="home.html">Home</a>
+      </header>
+
+      <main class="hero">
+        <section class="panel analyzer">
+          <div class="subtitle">Website Safety Checker</div>
+          <h1>Analyze a website before you trust it.</h1>
+          <p class="lead">
+            Some websites are fake, unsafe, or created to steal personal data. Enter a URL to check whether it looks secure or risky.
+          </p>
+
+          <div class="input-wrap">
+            <input id="urlInput" type="text" placeholder="Enter website URL e.g. example.com" />
+            <button id="checkBtn">Analyze</button>
+          </div>
+
+          <div class="ai-agent" id="aiAgentStatus">AI Security Agent: Waiting to scan the web.</div>
+          <div class="status-tag">Protection Mode Active</div>
+
+          <div class="samples">
+            <button class="sample" type="button">https://google.com</button>
+            <button class="sample" type="button">https://banksecure-login.com</button>
+            <button class="sample" type="button">http://example-login.xyz</button>
+          </div>
+        </section>
+
+        <aside class="panel result">
+          <div class="status-top">
+            <div class="signal-panel">
+              <div id="signalDot" class="signal-dot"></div>
+              <div class="score-box">
+                <h2 id="scoreValue">0</h2>
+                <span>/100</span>
+              </div>
+            </div>
+            <div id="statusBadge" class="status-pill">Not checked</div>
+          </div>
+
+          <ul id="insightList" class="insight-list">
+            <li>Enter a website address to begin the security review.</li>
+          </ul>
+
+          <div id="alertBox" class="alert-box">Waiting for analysis.</div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const urlInput = document.getElementById('urlInput');
+      const checkBtn = document.getElementById('checkBtn');
+      const scoreValue = document.getElementById('scoreValue');
+      const statusBadge = document.getElementById('statusBadge');
+      const insightList = document.getElementById('insightList');
+      const alertBox = document.getElementById('alertBox');
+      const signalDot = document.getElementById('signalDot');
+      const aiAgentStatus = document.getElementById('aiAgentStatus');
+      const samples = document.querySelectorAll('.sample');
+
+      function setSignal(state) {
+        signalDot.className = 'signal-dot';
+        if (state === 'safe') {
+          signalDot.classList.add('safe-light');
+        } else if (state === 'warning') {
+          signalDot.classList.add('warning-light');
+        } else {
+          signalDot.classList.add('danger-light');
+        }
+      }
+
+      function setAlert(type, message) {
+        alertBox.className = 'alert-box';
+        alertBox.classList.add(type === 'safe' ? 'alert-safe' : type === 'warning' ? 'alert-warning' : 'alert-danger');
+        alertBox.textContent = message;
+      }
+
+      function updateStatus(label, className, score) {
+        statusBadge.textContent = label;
+        statusBadge.className = 'status-pill ' + className;
+        scoreValue.textContent = score;
+      }
+
+      function setAiAgentMessage(message) {
+        aiAgentStatus.textContent = 'AI Security Agent: ' + message;
+      }
+
+      function analyzeWebsite(rawUrl) {
+        let value = rawUrl.trim();
+        if (!value) {
+          setAlert('danger', 'Please enter a website URL to analyze.');
+          return;
+        }
+
+        if (!/^https?:\/\//i.test(value)) {
+          value = 'https://' + value;
+        }
+
+        let parsed;
+        try {
+          parsed = new URL(value);
+        } catch {
+          setAlert('danger', 'The website URL is invalid. Please enter a valid domain or address.');
+          updateStatus('Invalid', 'danger', '0');
+          insightList.innerHTML = '<li>Please check the URL and try again.</li>';
+          return;
+        }
+
+        const host = parsed.hostname.toLowerCase();
+        const path = parsed.pathname.toLowerCase();
+        const suspiciousWords = [
+          'login', 'verify', 'secure', 'update', 'claim', 'free', 'winner', 'account',
+          'support', 'payment', 'urgent', 'alert', 'bank', 'wallet', 'confirm'
+        ];
+
+        let score = 100;
+        const insights = [];
+
+        if (parsed.protocol !== 'https:') {
+          score -= 35;
+          insights.push('Warning: The website is not using HTTPS, so the connection may not be encrypted.');
+        } else {
+          insights.push('Good: The website uses HTTPS encryption.');
+        }
+
+        const hasSuspiciousWord = suspiciousWords.some(word => host.includes(word));
+        if (hasSuspiciousWord) {
+          score -= 22;
+          insights.push('Flag: This domain contains suspicious keywords often used in phishing websites.');
+        } else {
+          insights.push('The domain name looks relatively normal and not obviously fake.');
+        }
+
+        if (host.includes('xn--') || host.length > 28) {
+          score -= 10;
+          insights.push('The domain looks unusually long or encoded, which can be a sign of impersonation.');
+        }
+
+        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+          score -= 20;
+          insights.push('The site is using an IP address instead of a trusted domain name.');
+        }
+
+        if (host.split('.').length > 3) {
+          score -= 8;
+          insights.push('Multiple subdomains may indicate a suspicious or untrusted website structure.');
+        }
+
+        if (/login|verify|secure|account/.test(path)) {
+          score -= 15;
+          insights.push('The page appears to request login or account actions, which may be risky if the site is untrusted.');
+        }
+
+        if (host.includes('bitly') || host.includes('tinyurl') || host.includes('redirect')) {
+          score -= 18;
+          insights.push('This looks like a shortened or redirecting domain, which is common in fake links.');
+        }
+
+        if (score >= 80) {
+          updateStatus('Secure', 'safe', Math.max(score, 80));
+          setSignal('safe');
+          setAiAgentMessage('The website is fully secure and trusted.');
+          setAlert('safe', 'This website appears secure. The system confirms the site looks safe to trust.');
+        } else if (score >= 50) {
+          updateStatus('Caution', 'warning', Math.max(score, 50));
+          setSignal('warning');
+          setAiAgentMessage('The website shows possible suspicious behavior.');
+          setAlert('warning', 'Warning: This website may be risky. Please be careful before entering personal or banking data.');
+        } else {
+          updateStatus('Dangerous', 'danger', score);
+          setSignal('danger');
+          setAiAgentMessage('Threat detected. This site may steal user data.');
+          setAlert('danger', 'Danger: This website looks unsafe or suspicious. Do not enter personal data or login credentials.');
+        }
+
+        if (insights.length > 0) {
+          insightList.innerHTML = insights.map(item => `<li>${item}</li>`).join('');
+        }
+      }
+
+      checkBtn.addEventListener('click', () => analyzeWebsite(urlInput.value));
+      urlInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          analyzeWebsite(urlInput.value);
+        }
+      });
+
+      samples.forEach(button => {
+        button.addEventListener('click', () => {
+          urlInput.value = button.textContent.trim();
+          analyzeWebsite(urlInput.value);
+        });
+      });
+    </script>
+  </body>
+</html>
+
